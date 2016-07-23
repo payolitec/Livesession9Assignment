@@ -1,0 +1,144 @@
+---
+title: "Unit9FinancialData"
+author: "Paola Leon"
+date: "July 22, 2016"
+output: html_document
+---
+
+##Instructions. Module 9.5
+
+*Assignment*
+
+Half of you will be assigned to find a series that is less volatile than the S&P 500, the other half a series that is more volatile.
+
+1. Download the data.
+
+2. Calculate log returns.
+
+3. Calculate volatility measure.
+
+4. Calculate volatility over entire length of series for various three different decay factors.
+
+5. Plot the results, overlaying the volatility curves on the data, just as was done in the S&P example.
+
+*Deliverable*
+
+Upload the Markdown file containing your code, analysis, and discussion to GitHub. Post a link to the Markdown file in the space below.
+The markdown document should have code for entering the data, calculating log returns, calculating volatility measure, and calculating volatility for the entire series using three different decay factors. Also needs to have code for a plot (and the plot itself) with the data and volatility overlaid.
+The discussion board will talk about the differences in the volatility plots for different stocks.
+
+##Recording the session info
+```{r}
+sessionInfo()
+```
+
+##Install needed packages
+
+installed.packages("fpp")
+
+installed.packages("tseries")
+
+```{r}
+library(fpp)
+library(tseries)
+```
+
+##1. Download the Data
+
+Stock assigned: PG 
+
+Company: Procter & Gamble Co (NYSE:PG)
+
+```{r}
+PGdata <- get.hist.quote('pg',quote="Close")
+length(PGdata)
+```
+
+
+##2. Calculate Log Returns
+
+Benefits of calculating Log Returns instead of Percent Returns:
+
+Log returns are additive (so they can be added in the entire time series)
+
+Log returns are symetric whereas percentages are biased in favor of gains
+
+```{r}
+PGreturn <- log(lag(PGdata)) - log(PGdata)
+length(PGreturn)
+```
+
+
+##3. Calculate volatility measure.
+
+Volatiliy help us determine the amount of change in a return:
+Standard Deviations of the PG returns times squared root of 250 (traiding days in a years) multiplies by 100 (to make it a percentage).
+
+```{r}
+PGvol <- sd(PGreturn) * sqrt(250) * 100
+PGvol
+```
+
+
+##4. Calculate volatility over entire length of series for various three different decay factors.
+1. Use a *Strict* Lookback Window (the length on time in the past from which information is gathered): 
+
+- Weight each of previous n days equally
+
+- A given day's return is counted for those n days
+
+2. Use a *Continuous* Lookback Window
+
+- Exponentially downweight older data
+
+- Determine variance from the weighted sum of squares of the previous returns
+
+- Take square root to estimate volatility
+
+3. Calulate Volatility
+
+- Divide by the sum of the weights, which are the powers of some number s
+
+- Find geometric sum via 1/(1−s)
+
+- Estimate current variance as Vold = (1-s) Σir2si.
+
+- Add new return (r0) to the series: Vnew = sVold + (1−s)r20
+
+- Ignore the mean
+
+*****************************************************************************
+The following function **getVol** was written by Dr. McGee to create a Continuous Lookback window.
+
+Parameters: d (Number of days) and logrets (Log returns)
+
+*****************************************************************************
+
+```{r}
+getVol <- function(d, logrets) {
+	var = 0
+	lam = 0
+	varlist <- c()
+	for (r in logrets) {
+		lam = lam*(1 - 1/d) + 1
+	  var = (1 - 1/lam)*var + (1/lam)*r^2
+		varlist <- c(varlist, var)
+	}
+	sqrt(varlist)
+}
+
+volestimate1 <- getVol(10, PGreturn)
+
+volestimate2 <- getVol(30, PGreturn)
+
+volestimate3 <- getVol(100, PGreturn)
+```
+
+
+##5. Plot the results, overlaying the volatility curves on the data, just as was done in the S&P example.
+```{r}
+plot(volestimate1,type="l")
+lines(volestimate2,type="l",col="red")
+lines(volestimate3, type = "l", col="blue")
+```
+
